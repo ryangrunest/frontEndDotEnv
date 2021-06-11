@@ -12,7 +12,6 @@ const keys = {
 
 const fdd = {
   splitObjectIntoTwoArrays: obj => {
-    console.log(obj);
     if ((typeof obj === 'object') & (obj !== null)) {
       return {
         arrayOfKeys: Array.from(Object.keys(obj)),
@@ -36,20 +35,18 @@ const fdd = {
 
       let encodedValues = [];
 
-      arrayOfValues.forEach(async (value, asdf) => {
-        let eValue = fdd.encodeValue(value);
-        console.log(eValue);
+      for (let x = 0; x < arrayOfValues.length; x++) {
+        let eValue = fdd.encodeValue(arrayOfValues[x]);
         let i = await fdd.encryptValue(key, eValue);
         let a = new Uint8Array(i);
         let v = '';
         a.forEach(index => {
           v += String.fromCharCode(index);
         });
-        console.log(v);
-        encodedValues.push({ [arrayOfKeys[asdf]]: v });
-        console.log(encodedValues);
+        encodedValues.push({ [arrayOfKeys[x]]: v });
         window.encodedValues = encodedValues;
-      });
+      }
+      console.log(encodedValues);
     } catch (err) {
       console.warn(
         'error with fdd config. you are doing something wrong: \n',
