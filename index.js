@@ -11,6 +11,17 @@ const keys = {
 };
 
 const fdd = {
+  splitObjectIntoTwoArrays: obj => {
+    console.log(obj);
+    if ((typeof obj === 'object') & (obj !== null)) {
+      return {
+        arrayOfKeys: Array.from(Object.keys(obj)),
+        arrayOfValues: Array.from(Object.values(obj)),
+      };
+    } else {
+      throw new Error('error encoding environment variables');
+    }
+  },
   init: async keys => {
     console.log(keys);
 
@@ -19,13 +30,15 @@ const fdd = {
     }
 
     try {
-      const arrayOfKeys = Array.from(Object.keys(keys));
-      const arrayOfValues = Array.from(Object.values(keys));
-      let encodedValues = [];
+      const { arrayOfKeys, arrayOfValues } =
+        fdd.splitObjectIntoTwoArrays(keys);
       let key = await fdd.getEncryptionKey();
+
+      let encodedValues = [];
 
       arrayOfValues.forEach(async (value, asdf) => {
         let eValue = fdd.encodeValue(value);
+        console.log(eValue);
         let i = await fdd.encryptValue(key, eValue);
         let a = new Uint8Array(i);
         let v = '';
@@ -35,6 +48,7 @@ const fdd = {
         console.log(v);
         encodedValues.push({ [arrayOfKeys[asdf]]: v });
         console.log(encodedValues);
+        window.encodedValues = encodedValues;
       });
     } catch (err) {
       console.warn(
@@ -61,57 +75,29 @@ const fdd = {
     });
   },
   encryptValue: (key, value) => {
-    const counter = window.crypto.getRandomValues(
-      new Uint8Array(16)
-    );
-
-    return new Promise(async resolve => {
-      let encryptedValue = await window.crypto.subtle.encrypt(
-        {
-          name: 'AES-CTR',
-          counter,
-          length: 64,
-        },
-        key,
-        value
+    return new Promise(resolve => {
+      const counter = window.crypto.getRandomValues(
+        new Uint8Array(16)
       );
-      // console.log(encryptedValue, key, value);
-      resolve(encryptedValue);
+
+      window.crypto.subtle
+        .encrypt(
+          {
+            name: 'AES-CTR',
+            counter,
+            length: 64,
+          },
+          key,
+          value
+        )
+        .then(buffer => {
+          resolve(buffer);
+        });
     });
   },
 };
 
 fdd.init(keys);
-
-// let iv = new Uint8Array(16);
-// let key = new Uint8Array(16);
-// let data = new Uint8Array(123897123);
-// //crypto functions are wrapped in promises so we have to use await and make sure the function that
-// //contains this code is an async function
-// //encrypt function wants a cryptokey object
-// async function main() {
-//   const key_encoded = await crypto.subtle.importKey(
-//     'raw',
-//     key.buffer,
-//     'AES-CTR',
-//     false,
-//     ['encrypt', 'decrypt']
-//   );
-//   const encrypted_content = await window.crypto.subtle.encrypt(
-//     {
-//       name: 'AES-CTR',
-//       counter: iv,
-//       length: 128,
-//     },
-//     key_encoded,
-//     data
-//   );
-
-//   //Uint8Array
-//   console.log(encrypted_content, d);
-// }
-
-// main();
 
 /*
   Generate a sign/verify key, then set up event listeners
