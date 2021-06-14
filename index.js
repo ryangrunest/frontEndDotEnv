@@ -49,38 +49,42 @@ const encode = {
       resolve(key);
     });
   },
-  init: async values => {
+  init: values => {
     console.log('encoding these values...', values);
-
-    if (!window) {
-      throw new Error('must use fdd in the browser');
-    }
-
-    try {
-      const { arrayOfKeys, arrayOfValues } =
-        encode.splitObjectIntoTwoArrays(values);
-      let key = await encode.getEncryptionKey();
-
-      let encodedValues = [];
-
-      for (let x = 0; x < arrayOfValues.length; x++) {
-        let eValue = encode.encodeValue(arrayOfValues[x]);
-        let i = await encode.encryptValue(key, eValue);
-        let a = new Uint8Array(i);
-        let v = '';
-        a.forEach(index => {
-          v += String.fromCharCode(index);
-        });
-        encodedValues.push({ [arrayOfKeys[x]]: v });
+    return new Promise(async (resolve, reject) => {
+      if (!window) {
+        throw new Error('must use fdd in the browser');
       }
-      console.log('encoded values:\n', encodedValues);
-      return encodedValues;
-    } catch (err) {
-      console.warn(
-        'error with fdd config. you are doing something wrong: \n',
-        err
-      );
-    }
+
+      try {
+        const { arrayOfKeys, arrayOfValues } =
+          encode.splitObjectIntoTwoArrays(values);
+        let encryptionKey = await encode.getEncryptionKey();
+        let encodedValues = [];
+
+        for (let x = 0; x < arrayOfValues.length; x++) {
+          let eValue = encode.encodeValue(arrayOfValues[x]);
+          let i = await encode.encryptValue(
+            encryptionKey,
+            eValue
+          );
+          let a = new Uint8Array(i);
+          let v = '';
+          a.forEach(index => {
+            v += String.fromCharCode(index);
+          });
+          encodedValues.push({ [arrayOfKeys[x]]: v });
+        }
+        console.log('encoded values:\n', encodedValues);
+        resolve({ encodedValues, encryptionKey });
+      } catch (err) {
+        console.warn(
+          'error with fdd config. you are doing something wrong: \n',
+          err
+        );
+        reject(false);
+      }
+    });
   },
   splitObjectIntoTwoArrays: obj => {
     if ((typeof obj === 'object') & (obj !== null)) {
@@ -96,56 +100,32 @@ const encode = {
 
 const fdd = {
   init: async keys => {
-    let encodedValues = encode.init(keys);
+    let { encodedValues, encryptionKey } = await encode.init(
+      keys
+    );
+
+    window.encodedValues = encodedValues;
+
+    console.log(
+      'encoded values:\n',
+      encodedValues,
+      '\nencryption key:\n',
+      encryptionKey
+    );
+
+    let decodedValues = fdd.decodeValues(encodedValues);
   },
-  decodeValues: values => {},
+  decodeValues: values => {
+    console.log('decoding values', values);
+    for (let i = 0; i < values.length; i++) {
+      fdd.decodeValue(values[i]);
+    }
+  },
+  decodeValue: value => {
+    console.log('decoding value:\n', value);
+    return value;
+  },
+  getCipherTextFromUIntArray: () => {},
 };
 
 fdd.init(keys);
-
-/*
-  Generate a sign/verify key, then set up event listeners
-  on the "Sign" and "Verify" buttons.
-  */
-// window.crypto.subtle
-//   .generateKey(
-//     {
-//       name: 'ECDSA',
-//       namedCurve: 'P-384',
-//     },
-//     true,
-//     ['sign', 'verify']
-//   )
-//   .then(keyPair => {
-//     console.log(keyPair);
-//     let message = getMessageEncoding('beef');
-//     window.crypto.subtle
-//       .sign(
-//         {
-//           name: 'ECDSA',
-//           hash: { name: 'SHA-384' },
-//         },
-//         keyPair.privateKey,
-//         message
-//       )
-//       .then(res => {
-//         console.log(res);
-//         let array = new Uint32Array(res);
-//         let val = '';
-//         array.forEach(index => {
-//           val += String.fromCharCode(index);
-//         });
-//         console.log(val);
-//       });
-// signMessage(keyPair.privateKey);
-// verifyMessage(keyPair.publicKey);
-// });
-
-/*
-  Fetch the contents of the "message" textbox, and encode it
-  in a form we can use for sign operation.
-  */
-function getMessageEncoding(message) {
-  const enc = new TextEncoder();
-  return enc.encode(message);
-}
