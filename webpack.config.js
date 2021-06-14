@@ -2,9 +2,24 @@ const path = require('path');
 
 module.exports = {
   mode: 'production',
-  context: path.resolve(__dirname, 'src'),
-  entry: './index.js',
+  entry: './src/index.js',
   output: {
+    path: path.resolve(__dirname, 'dist'),
     library: 'fdd',
+    filename: 'fdd.js',
+  },
+  optimization: {
+    minimize: true,
+  },
+  module: {
+    rules: [
+      {
+        test: /\.jsx?$/,
+        loader: 'babel-loader',
+        options: {
+          presets: ['@babel/preset-env'],
+        },
+      },
+    ],
   },
 };
