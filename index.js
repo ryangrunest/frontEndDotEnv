@@ -31,8 +31,9 @@ const encode = {
           key,
           value
         )
-        .then(buffer => {
-          resolve(buffer);
+        .then(cipherText => {
+          console.log('encrypted value', value);
+          resolve({ cipherText, counter });
         });
     });
   },
@@ -64,16 +65,16 @@ const encode = {
 
         for (let x = 0; x < arrayOfValues.length; x++) {
           let eValue = encode.encodeValue(arrayOfValues[x]);
-          let i = await encode.encryptValue(
-            encryptionKey,
-            eValue
-          );
-          let a = new Uint8Array(i);
+          let { cipherText, counter } =
+            await encode.encryptValue(encryptionKey, eValue);
+          let a = new Uint8Array(cipherText);
           let v = '';
           a.forEach(index => {
             v += String.fromCharCode(index);
           });
-          encodedValues.push({ [arrayOfKeys[x]]: v });
+          encodedValues.push({
+            [arrayOfKeys[x]]: { cipherText, counter, buffer: v },
+          });
         }
         console.log('encoded values:\n', encodedValues);
         resolve({ encodedValues, encryptionKey });
@@ -113,17 +114,43 @@ const fdd = {
       encryptionKey
     );
 
-    let decodedValues = fdd.decodeValues(encodedValues);
+    let decodedValues = fdd.decodeValues(
+      encodedValues,
+      encryptionKey
+    );
   },
-  decodeValues: values => {
+  decodeValues: async (values, encryptionKey) => {
     console.log('decoding values', values);
     for (let i = 0; i < values.length; i++) {
-      fdd.decodeValue(values[i]);
+      let obj = Array.from(Object.values(values[i]));
+      let decodedMessage = await fdd.decodeValue(
+        obj[0],
+        encryptionKey
+      );
+      let dec = new TextDecoder();
+      console.log(dec.decode(decodedMessage));
     }
   },
-  decodeValue: value => {
-    console.log('decoding value:\n', value);
-    return value;
+  decodeValue: (v, encryptionKey) => {
+    return new Promise(async (resolve, reject) => {
+      let { cipherText, counter } = v;
+      try {
+        let decryptedMessage =
+          await window.crypto.subtle.decrypt(
+            {
+              name: 'AES-CTR',
+              counter,
+              length: 64,
+            },
+            encryptionKey,
+            cipherText
+          );
+
+        resolve(decryptedMessage);
+      } catch (err) {
+        reject(err);
+      }
+    });
   },
   getCipherTextFromUIntArray: () => {},
 };
