@@ -10,66 +10,10 @@ const keys = {
   NEXT_PUBLIC_API_KEY: 'AIzaSyCYBzQ6yAAZFpTIMUAjuei6bl0iolSmbjA',
 };
 
-const fdd = {
-  splitObjectIntoTwoArrays: obj => {
-    if ((typeof obj === 'object') & (obj !== null)) {
-      return {
-        arrayOfKeys: Array.from(Object.keys(obj)),
-        arrayOfValues: Array.from(Object.values(obj)),
-      };
-    } else {
-      throw new Error('error encoding environment variables');
-    }
-  },
-  init: async keys => {
-    console.log(keys);
-
-    if (!window) {
-      throw new Error('must use fdd in the browser');
-    }
-
-    try {
-      const { arrayOfKeys, arrayOfValues } =
-        fdd.splitObjectIntoTwoArrays(keys);
-      let key = await fdd.getEncryptionKey();
-
-      let encodedValues = [];
-
-      for (let x = 0; x < arrayOfValues.length; x++) {
-        let eValue = fdd.encodeValue(arrayOfValues[x]);
-        let i = await fdd.encryptValue(key, eValue);
-        let a = new Uint8Array(i);
-        let v = '';
-        a.forEach(index => {
-          v += String.fromCharCode(index);
-        });
-        encodedValues.push({ [arrayOfKeys[x]]: v });
-        window.encodedValues = encodedValues;
-      }
-      console.log(encodedValues);
-    } catch (err) {
-      console.warn(
-        'error with fdd config. you are doing something wrong: \n',
-        err
-      );
-    }
-  },
+const encode = {
   encodeValue: value => {
     let enc = new TextEncoder();
     return enc.encode(value);
-  },
-  getEncryptionKey: () => {
-    return new Promise(async resolve => {
-      let key = await crypto.subtle.generateKey(
-        {
-          name: 'AES-CTR',
-          length: 256,
-        },
-        false,
-        ['encrypt', 'decrypt']
-      );
-      resolve(key);
-    });
   },
   encryptValue: (key, value) => {
     return new Promise(resolve => {
@@ -92,6 +36,69 @@ const fdd = {
         });
     });
   },
+  getEncryptionKey: () => {
+    return new Promise(async resolve => {
+      let key = await crypto.subtle.generateKey(
+        {
+          name: 'AES-CTR',
+          length: 256,
+        },
+        false,
+        ['encrypt', 'decrypt']
+      );
+      resolve(key);
+    });
+  },
+  init: async values => {
+    console.log('encoding these values...', values);
+
+    if (!window) {
+      throw new Error('must use fdd in the browser');
+    }
+
+    try {
+      const { arrayOfKeys, arrayOfValues } =
+        encode.splitObjectIntoTwoArrays(values);
+      let key = await encode.getEncryptionKey();
+
+      let encodedValues = [];
+
+      for (let x = 0; x < arrayOfValues.length; x++) {
+        let eValue = encode.encodeValue(arrayOfValues[x]);
+        let i = await encode.encryptValue(key, eValue);
+        let a = new Uint8Array(i);
+        let v = '';
+        a.forEach(index => {
+          v += String.fromCharCode(index);
+        });
+        encodedValues.push({ [arrayOfKeys[x]]: v });
+      }
+      console.log('encoded values:\n', encodedValues);
+      return encodedValues;
+    } catch (err) {
+      console.warn(
+        'error with fdd config. you are doing something wrong: \n',
+        err
+      );
+    }
+  },
+  splitObjectIntoTwoArrays: obj => {
+    if ((typeof obj === 'object') & (obj !== null)) {
+      return {
+        arrayOfKeys: Array.from(Object.keys(obj)),
+        arrayOfValues: Array.from(Object.values(obj)),
+      };
+    } else {
+      throw new Error('error encoding environment variables');
+    }
+  },
+};
+
+const fdd = {
+  init: async keys => {
+    let encodedValues = encode.init(keys);
+  },
+  decodeValues: values => {},
 };
 
 fdd.init(keys);
