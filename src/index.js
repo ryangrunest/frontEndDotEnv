@@ -1,3 +1,6 @@
+import 'core-js/stable';
+import 'regenerator-runtime/runtime';
+
 import encode from './encode.js';
 
 //test keys
@@ -67,7 +70,7 @@ function Process(keys) {
 
         try {
           const { arrayOfKeys, arrayOfValues } =
-            this.splitObjectIntoTwoArrays(values);
+            Process.splitObjectIntoTwoArrays(values);
           let encryptionKey =
             await this.encode.getEncryptionKey();
           let encodedValues = [];

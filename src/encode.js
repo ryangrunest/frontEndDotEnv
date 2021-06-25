@@ -1,4 +1,4 @@
-export default encode = {
+export default {
   encodeValue: value => {
     let enc = new TextEncoder();
     return enc.encode(value);
