@@ -1,4 +1,6 @@
-import encode from './encode';
+import encode from './encode.js';
+
+//test keys
 const keys = {
   MEASUREMENT_ID: 'G-8JPJ4BEEWT',
   NEXT_PUBLIC_APP_ID:
